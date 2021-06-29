@@ -3,9 +3,13 @@
 # 저장, 열기, 새창, 다른이름으로 저장
 # 저장시 텍스트나 파이썬 파일 아니면 자동 txt파일로 저장
 # 새창시 무조건 다른이름저장
+# 실행취소, 찾기(text.tag 이용) but 창 이동 해야 블록 보임
 
 # 구현할것(편집탭)
-# 실행취소, 찾기
+
+# 텍스트창 꽉채우기( 창크기에따라)
+# 디렉토리 이동
+# 
 
 # UI를 클래스로 구분해서 따로 작성해야게씀
 # 파일 이름은 entry로
@@ -145,19 +149,61 @@ class UI_filesave:
     def __del__(self):
         self.UI_save.destroy()
 
-        
+
+
+# 찾기 UI
+class UI_find:
+    def __init__(self):
+        self.UI=Toplevel(root)
+        self.UI.title()
+        self.UI.geometry("200x50")
+        self.frame=Frame(self.UI)
+        self.frame.pack(fill="both")
+        self.UI.resizable(False, False)
+        self.entry=Entry(self.frame)
+        self.btn_find=Button(self.frame,text="찾기", command=self.find)
+        self.entry.pack(side="left")
+        self.btn_find.pack(side="right")
+        self.start="1.0"
+        self.UI.mainloop()
+
+    
+    def find(self):
+        # 기존 블록처리된거 없에기
+        txt.tag_remove("sel", "1.0", END)
+        self.start=txt.index(INSERT)
+        word=self.entry.get()
+        pos = txt.search(word, self.start, stopindex=END)
+        if not pos:
+            self.start="1.0"
+            pos = txt.search(word, self.start, stopindex=END)
+            if not pos:
+                msgbox.showerror("에러", "찾는 단어가 없습니다.")
+                return
+        length = len(word)
+        row, col = pos.split('.')
+        end = int(col) + length
+        end = row + '.' + str(end)
+        print(end)
+
+        # 블럭처리 해줌(드래그된 상태)
+        # 블럭처리 되면 커서도 블럭처리된 글자 앞으로이동
+        # insert마크를 가져와야 글자삽입 마크를 가져온다
+        txt.tag_add("sel", pos, end)
+        txt.mark_set(INSERT,SEL_LAST)
+        root.update()
+        self.start=end
+
+
+
 
 def cancel(UI):
     del UI
-# 메뉴
 
-menu=Menu(root)
-menu_file=Menu(menu, tearoff=0)
-menu_edit=Menu(menu, tearoff=0)
-menu_text=Menu(menu, tearoff=0)
-menu_view=Menu(menu, tearoff=0)
-menu_help=Menu(menu, tearoff=0)
 
+# 메뉴함수
+
+# 파일메뉴 함수
 # 오픈시 저장여부
 def yesnocancel():
     response=msgbox.askyesnocancel(title="변경 저장", message=f"변경내용을 저장하시겠습니까?")
@@ -222,6 +268,18 @@ def new_tap():
 def save_as():
     UI=UI_filesave()
 
+# 편집메뉴 함수
+def find_word():
+    UI=UI_find()
+
+# 메뉴
+menu=Menu(root)
+menu_file=Menu(menu, tearoff=0)
+menu_edit=Menu(menu, tearoff=0)
+menu_text=Menu(menu, tearoff=0)
+menu_view=Menu(menu, tearoff=0)
+menu_help=Menu(menu, tearoff=0)
+# 메뉴 파일
 menu_file.add_command(label="새 창", command=new_tap)
 menu_file.add_separator()
 menu_file.add_command(label="열기", command=open_file)
@@ -230,9 +288,9 @@ menu_file.add_command(label="다른 이름으로 저장", command=save_as)
 menu_file.add_separator()
 menu_file.add_command(label="끝내기", command=cmd_quit)
 
-
 menu.add_cascade(label="파일", menu=menu_file)
-
+# 메뉴 편집
+menu_edit.add_command(label="찾기", command=find_word)
 menu.add_cascade(label="편집", menu=menu_edit)
 menu.add_cascade(label="서식", menu=menu_text)
 menu.add_cascade(label="보기", menu=menu_view)
@@ -248,10 +306,11 @@ frame.pack(fill="both", expand=True)
 
 scrollbar=Scrollbar(frame)
 scrollbar.pack(side="right", fill="y")
-txt=Text(frame, padx=0, pady=0,yscrollcommand=scrollbar.set, endline=None)  # 사이즈 비우니 전체가 text로 됨 but 사이즈 바꿔도 텍스트박스 크기고정;
-txt.pack(side="left", )
+txt=Text(frame,yscrollcommand=scrollbar.set, endline=None)  # 사이즈 비우니 전체가 text로 됨 but 사이즈 바꿔도 텍스트박스 크기고정;
+txt.pack(side="left",fill="both", expand=True)
 # txt.grid(row=0, column=0, sticky=N+W+S+E)
 scrollbar.config(command=txt.yview)
+
 
 
 root.config(menu=menu)
