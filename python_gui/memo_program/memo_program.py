@@ -3,11 +3,10 @@
 # 저장, 열기, 새창, 다른이름으로 저장
 # 저장시 텍스트나 파이썬 파일 아니면 자동 txt파일로 저장
 # 새창시 무조건 다른이름저장
-# 실행취소, 찾기(text.tag 이용) but 창 이동 해야 블록 보임
+# 실행취소(text.edit_undo), 찾기
 
 # 구현할것(편집탭)
-
-# 텍스트창 꽉채우기( 창크기에따라)
+# 바꾸기
 # 디렉토리 이동
 # 
 
@@ -26,6 +25,20 @@ root=Tk()
 root.title("제목 없음")
 root.geometry("480x480")
 root.resizable(True, True)
+
+# 프레임
+frame= Frame(root)
+frame.pack(fill="both", expand=True)
+
+
+# 본문 텍스트 박스
+
+scrollbar=Scrollbar(frame)
+scrollbar.pack(side="right", fill="y")
+txt=Text(frame,yscrollcommand=scrollbar.set, endline=None, inactiveselectbackground="blue", undo=True )  # 사이즈 비우니 전체가 text로 됨 but 사이즈 바꿔도 텍스트박스 크기고정;
+txt.pack(side="left",fill="both", expand=True)
+# txt.grid(row=0, column=0, sticky=N+W+S+E)
+scrollbar.config(command=txt.yview)
 
 is_newtap=True  
 # 처음 켰을때 새 창이다.
@@ -290,6 +303,7 @@ menu_file.add_command(label="끝내기", command=cmd_quit)
 
 menu.add_cascade(label="파일", menu=menu_file)
 # 메뉴 편집
+menu_edit.add_command(label="실행 취소", command=txt.edit_undo)
 menu_edit.add_command(label="찾기", command=find_word)
 menu.add_cascade(label="편집", menu=menu_edit)
 menu.add_cascade(label="서식", menu=menu_text)
@@ -297,19 +311,7 @@ menu.add_cascade(label="보기", menu=menu_view)
 menu.add_cascade(label="도움말", menu=menu_help)
 
 
-# 프레임
-frame= Frame(root)
-frame.pack(fill="both", expand=True)
 
-
-# 본문 텍스트 박스
-
-scrollbar=Scrollbar(frame)
-scrollbar.pack(side="right", fill="y")
-txt=Text(frame,yscrollcommand=scrollbar.set, endline=None)  # 사이즈 비우니 전체가 text로 됨 but 사이즈 바꿔도 텍스트박스 크기고정;
-txt.pack(side="left",fill="both", expand=True)
-# txt.grid(row=0, column=0, sticky=N+W+S+E)
-scrollbar.config(command=txt.yview)
 
 
 
