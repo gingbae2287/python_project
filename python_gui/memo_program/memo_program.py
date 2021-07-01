@@ -3,12 +3,13 @@
 # 저장, 열기, 새창, 다른이름으로 저장
 # 저장시 텍스트나 파이썬 파일 아니면 자동 txt파일로 저장
 # 새창시 무조건 다른이름저장
-# 실행취소(text.edit_undo), 찾기
+# 실행취소(text.edit_undo), 찾기, 바꾸기, 모두바꾸기(블록있으면 블록안에서만)
 
 # 구현할것(편집탭)
-# 바꾸기
+# 찾기에 단어(2자이상) 입력시 바로바로 모든 단어 블록처리(선택단어는 색 찐하게 블록)
+# 모두 바꾸기 바뀐 단어에 다 블록처리
 # 디렉토리 이동
-# 
+# 단축키 넣기
 
 # UI를 클래스로 구분해서 따로 작성해야게씀
 # 파일 이름은 entry로
@@ -92,9 +93,6 @@ class UI_fileopen:
         file_name=widget.get(widget.curselection())
         self.file_name_txt.delete(0, END)
         self.file_name_txt.insert(0,file_name)
-    
-    def __del__(self):
-        self.UI_open.destroy()
 
 
 # 저장 UI
@@ -158,9 +156,6 @@ class UI_filesave:
             f.close
             self.UI_save.destroy()
             cancel(self)
-    
-    def __del__(self):
-        self.UI_save.destroy()
 
 
 
@@ -169,35 +164,38 @@ class UI_find:
     def __init__(self):
         self.UI=Toplevel(root)
         self.UI.title()
-        self.UI.geometry("200x50")
-        self.frame=Frame(self.UI)
-        self.frame.pack(fill="both")
+        self.UI.geometry("400x200")
         self.UI.resizable(False, False)
-        self.entry=Entry(self.frame)
-        self.btn_find=Button(self.frame,text="찾기", command=self.find)
-        self.entry.pack(side="left")
-        self.btn_find.pack(side="right")
-        self.start="1.0"
+        self.entry=Entry(self.UI)
+        self.entry_change=Entry(self.UI)
+        self.btn_find=Button(self.UI,text="찾기", command=self.find)
+        self.btn_change=Button(self.UI, text="바꾸기", command=self.change)
+        self.btn_changeall=Button(self.UI, text="모두 바꾸기", command=self.change_all)
+
+        self.entry.grid(row=0, column=0)
+        self.entry_change.grid(row=1, column=0)
+        self.btn_find.grid(row=0, column=1,sticky=N+E+W+S)
+        self.btn_change.grid(row=1, column=1,sticky=N+E+W+S)
+        self.btn_changeall.grid(row=1, column=2,sticky=N+E+W+S)
         self.UI.mainloop()
 
     
     def find(self):
         # 기존 블록처리된거 없에기
         txt.tag_remove("sel", "1.0", END)
-        self.start=txt.index(INSERT)
+        start=txt.index(INSERT)
         word=self.entry.get()
-        pos = txt.search(word, self.start, stopindex=END)
+        pos = txt.search(word, start, stopindex=END)
         if not pos:
-            self.start="1.0"
-            pos = txt.search(word, self.start, stopindex=END)
+            start="1.0"
+            pos = txt.search(word, start, stopindex=END)
             if not pos:
-                msgbox.showerror("에러", "찾는 단어가 없습니다.")
+                msgbox.showerror("에러", f"{word}를 찾을 수 없습니다.")
                 return
         length = len(word)
         row, col = pos.split('.')
         end = int(col) + length
         end = row + '.' + str(end)
-        print(end)
 
         # 블럭처리 해줌(드래그된 상태)
         # 블럭처리 되면 커서도 블럭처리된 글자 앞으로이동
@@ -205,7 +203,55 @@ class UI_find:
         txt.tag_add("sel", pos, end)
         txt.mark_set(INSERT,SEL_LAST)
         root.update()
-        self.start=end
+
+
+    # 바꾸기
+    # 찾기에 해당되는 단어를 찾아 드래그 해 준후 단어 바꾸고 나면 그다음 찾기 단어에 드래그
+    def change(self):
+        word=self.entry.get()
+        changed_word=self.entry_change.get()
+        try:
+            txt.selection_get()
+        except:
+            self.find()
+        else:
+            x=txt.index(SEL_FIRST)
+            y=txt.index(SEL_LAST)
+            if word==txt.get(x,y):
+                txt.delete(x,y)
+                txt.insert(x,changed_word)
+            self.find()
+
+    # 모두바꾸기
+    # 모두바꾸기는 드래그된 부분이 있으면 드래그된 부분 내에서만 바꾸도록 구현해봄
+
+    def change_all(self):
+        word=self.entry.get()
+        changed_word=self.entry_change.get()
+        try:
+            txt.selection_get()
+        # 블록처리 없으면 모두바꾸고
+        except:
+            start="1.0"
+            end=txt.index(END)
+        # 블록처리 있으면 해당부분만 바꿈
+        else:
+            start=txt.index(SEL_FIRST)
+            end=txt.index(SEL_LAST)
+
+        pos=txt.search(word, start, stopindex=end)
+        if not pos:
+                msgbox.showerror("에러", f"{word}를 찾을 수 없습니다.")
+                return
+        while pos:
+            length=len(word)
+            row, col = pos.split('.')
+            word_end = int(col) + length
+            word_end = row + '.' + str(word_end)
+            txt.delete(pos, word_end)
+            txt.insert(pos,changed_word)
+            pos=txt.search(word, start, stopindex=end)
+
 
 
 
