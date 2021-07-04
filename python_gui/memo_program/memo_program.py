@@ -4,15 +4,21 @@
 # 저장시 텍스트나 파이썬 파일 아니면 자동 txt파일로 저장
 # 새창시 무조건 다른이름저장
 # 실행취소(text.edit_undo), 찾기, 바꾸기, 모두바꾸기(블록있으면 블록안에서만)
+# 찾기에 단어(2자이상) 입력시 바로바로 모든 단어 블록처리(선택단어는 색 찐하게 블록)
+# 단축키 넣음
+
+# 실행취소 undo가 시원찮아서 방법을 찾아야함. (파일 로드된것도 실행취소하면 텍스트만 지워버림;)
+# 버퍼?
+
+# 구현할 것 (파일탭)
+# 파일 더블클릭시 열기
+
 
 # 구현할것(편집탭)
-# 찾기에 단어(2자이상) 입력시 바로바로 모든 단어 블록처리(선택단어는 색 찐하게 블록)
 # 모두 바꾸기 바뀐 단어에 다 블록처리
 # 디렉토리 이동
-# 단축키 넣기
 
-# UI를 클래스로 구분해서 따로 작성해야게씀
-# 파일 이름은 entry로
+
 
 import tkinter.messagebox as msgbox
 from tkinter import *
@@ -36,7 +42,7 @@ frame.pack(fill="both", expand=True)
 
 scrollbar=Scrollbar(frame)
 scrollbar.pack(side="right", fill="y")
-txt=Text(frame,yscrollcommand=scrollbar.set, endline=None, inactiveselectbackground="blue", undo=True )  # 사이즈 비우니 전체가 text로 됨 but 사이즈 바꿔도 텍스트박스 크기고정;
+txt=Text(frame,yscrollcommand=scrollbar.set, endline=None, inactiveselectbackground="blue", undo=True, autoseparators=True )  # 사이즈 비우니 전체가 text로 됨 but 사이즈 바꿔도 텍스트박스 크기고정;
 txt.pack(side="left",fill="both", expand=True)
 # txt.grid(row=0, column=0, sticky=N+W+S+E)
 scrollbar.config(command=txt.yview)
@@ -53,6 +59,7 @@ class UI_fileopen:
         self.UI_open.title("열기")
         self.UI_open.geometry("480x300")
         self.UI_open.resizable(True, True)
+
         self.file_list = os.listdir(current_path)    # 디렉토리내 파일 리스트
         self.listbox=Listbox(self.UI_open, selectmode="single",width=40, height=10)
         for file_name in self.file_list:
@@ -166,6 +173,11 @@ class UI_find:
         self.UI.title()
         self.UI.geometry("400x200")
         self.UI.resizable(False, False)
+
+        # 창 종료 호출되면 콜백될 함수.
+        # destroy도 써줘야함
+        self.UI.protocol("WM_DELETE_WINDOW", self.destroy_window)
+
         self.entry=Entry(self.UI)
         self.entry_change=Entry(self.UI)
         self.btn_find=Button(self.UI,text="찾기", command=self.find)
@@ -176,13 +188,40 @@ class UI_find:
         self.entry_change.grid(row=1, column=0)
         self.btn_find.grid(row=0, column=1,sticky=N+E+W+S)
         self.btn_change.grid(row=1, column=1,sticky=N+E+W+S)
-        self.btn_changeall.grid(row=1, column=2,sticky=N+E+W+S)
+        self.btn_changeall.grid(row=2, column=1,sticky=N+E+W+S)
+
+        # 찾기에 텍스트 입력시 실시간으로 블록해줌
+        # UI나 frame에 바인드해야 블록이 바로바로 업데이트댐
+        self.UI.bind("<Key>", self.find_key)
+
         self.UI.mainloop()
+
+    # 키 바인드 될때마다 실시간 블럭처리
+    def find_key(self,event):
+        # self.entry.focus_set()
+        print("키바인드!")
+        txt.tag_remove("tmp_sel", "1.0", END)
+        start="1.0"
+        word=self.entry.get()
+        length=len(word)
+        if length>1:
+            try:
+                pos=txt.search(word, start, stopindex=END)
+            except:
+                pass
+            else:
+                while pos:
+                    row, col = pos.split('.')
+                    word_end = int(col) + length
+                    word_end = row + '.' + str(word_end)
+                    start=word_end
+                    txt.tag_add("tmp_sel", pos, word_end)
+                    pos=txt.search(word, start, stopindex=END)
+        txt.tag_config("tmp_sel", background="skyblue", foreground="white")
 
     
     def find(self):
-        # 기존 블록처리된거 없에기
-        txt.tag_remove("sel", "1.0", END)
+        txt.tag_remove("sel", "1.0", END)   # 기존 블록처리된거 없에기
         start=txt.index(INSERT)
         word=self.entry.get()
         pos = txt.search(word, start, stopindex=END)
@@ -199,10 +238,15 @@ class UI_find:
 
         # 블럭처리 해줌(드래그된 상태)
         # 블럭처리 되면 커서도 블럭처리된 글자 앞으로이동
+        # 현재 커서 위치 기준으로 다음 단어를 찾아주는 방식
         # insert마크를 가져와야 글자삽입 마크를 가져온다
         txt.tag_add("sel", pos, end)
         txt.mark_set(INSERT,SEL_LAST)
         root.update()
+    
+    def destroy_window(self): # 찾기 창 닫으면 태그 제거
+        txt.tag_remove("tmp_sel", "1.0", END)
+        self.UI.destroy()
 
 
     # 바꾸기
@@ -295,11 +339,11 @@ def check_save():
             return -1
     else:   # 변경내용 없으면 return 1
         return 1
-def open_file():
+def open_file(event=None):
     if check_save() != -1:
         UI=UI_fileopen()
 
-def save_file():
+def save_file(event=None):
     # 새 창일경우 파일이름 설정
     if is_newtap:
         UI=UI_filesave()
@@ -315,7 +359,7 @@ def cmd_quit():
         root.quit()
 
 # 새창
-def new_tap():
+def new_tap(event=None):
     if check_save()==-1:
         return
     global is_newtap
@@ -324,11 +368,11 @@ def new_tap():
     txt.delete("1.0", END)
 
 # 다른이름으로 저장
-def save_as():
+def save_as(event=None):
     UI=UI_filesave()
 
 # 편집메뉴 함수
-def find_word():
+def find_word(event=None):
     UI=UI_find()
 
 # 메뉴
@@ -339,18 +383,27 @@ menu_text=Menu(menu, tearoff=0)
 menu_view=Menu(menu, tearoff=0)
 menu_help=Menu(menu, tearoff=0)
 # 메뉴 파일
-menu_file.add_command(label="새 창", command=new_tap)
+menu_file.add_command(label=f'{"새로만들기":<23}{"Ctrl+n":>12}', command=new_tap)
+root.bind("<Control-n>",new_tap)
 menu_file.add_separator()
-menu_file.add_command(label="열기", command=open_file)
-menu_file.add_command(label="저장", command=save_file)
-menu_file.add_command(label="다른 이름으로 저장", command=save_as)
+menu_file.add_command(label=f'{"열기":<29}{"Ctrl+o":>12}', command=open_file)
+root.bind("<Control-o>",open_file)
+menu_file.add_command(label=f'{"저장":<29}{"Ctrl+s":>12}', command=save_file)
+root.bind("<Control-s>",save_file)
+menu_file.add_command(label=f'{"다른 이름으로 저장":<16}{"Ctrl+Shift+s":>12}', command=save_as)
+root.bind("<Control-Shift-S>",save_as)  # shift 가 들어가서 대문자로 S해줘야하나?
 menu_file.add_separator()
 menu_file.add_command(label="끝내기", command=cmd_quit)
 
 menu.add_cascade(label="파일", menu=menu_file)
 # 메뉴 편집
-menu_edit.add_command(label="실행 취소", command=txt.edit_undo)
-menu_edit.add_command(label="찾기", command=find_word)
+menu_edit.add_command(label="실행 취소".ljust(12)+"Ctrl+z".rjust(8), command=txt.edit_undo)
+# root.bind("<Control-z>",txt.edit_undo)
+menu_edit.add_command(label="다시 실행".ljust(12)+"Ctrl+y".rjust(8), command=txt.edit_redo)
+# root.bind("<Control-y>",txt.edit_redo)
+menu_edit.add_command(label="찾기/바꾸기".ljust(10)+"Ctrl+f".rjust(8), command=find_word)
+root.bind("<Control-f>",find_word)
+
 menu.add_cascade(label="편집", menu=menu_edit)
 menu.add_cascade(label="서식", menu=menu_text)
 menu.add_cascade(label="보기", menu=menu_view)
