@@ -7,13 +7,12 @@
 # 실행취소(text.edit_undo), 찾기, 바꾸기, 모두바꾸기(블록있으면 블록안에서만)
 # 찾기에 단어(2자이상) 입력시 바로바로 모든 단어 블록처리(선택단어는 색 찐하게 블록)
 # 단축키 넣음
-# 열기 UI에서 디렉토리이동(이전폴더, 폴더 들어가기 가능)
+# 파일탐색 UI에서 디렉토리이동(이전폴더, 폴더 들어가기 가능)
 
 # 실행취소 undo가 시원찮아서 방법을 찾아야함. (파일 로드된것도 실행취소하면 텍스트만 지워버림;)
 # 버퍼?
 
 # 구현할 것 (파일탭)
-
 
 # 구현할것(편집탭)
 # 모두 바꾸기 바뀐 단어에 다 블록처리
@@ -25,14 +24,13 @@
 import tkinter.messagebox as msgbox
 from tkinter import *
 import os
+from UI_file import *
 
 # 경로
-current_path=os.path.join(os.path.dirname(__file__),"folder")
-print(current_path)
+# current_path=os.path.join(os.path.dirname(__file__),"folder")
 
-
-#########
-dir_list=current_path.split("\\")
+# # #########
+# dir_list=current_path.split("\\")
 
 
 
@@ -62,130 +60,33 @@ is_newtap=True
 # 처음 켰을때 새 창이다.
 # title이 제목 없음 이라도 이름이 *로되어있고 저장불가능 이름임. 저장시 이름 직접 작성해야함
 
-# 파일 열기 화면
-class UI_fileopen:
-    def __init__(self):
-        global is_newtap
-        self.UI_open=Toplevel(root)
-        self.UI_open.title("열기")
-        self.UI_open.geometry("480x300")
-        self.UI_open.resizable(True, True)
-        # 프레임
-        self.frame_path=Frame(self.UI_open, relief="solid", bd=1)
-        self.frame_folder=LabelFrame(self.UI_open,text="folders", relief="solid",bd=1)
-        self.frame_file=LabelFrame(self.UI_open,text="files", relief="solid",bd=1)
-        self.frame_bottom=Frame(self.UI_open, relief="solid",bd=1, height=5)
-        self.frame_path.grid(row=0,column=0,columnspan=2,sticky=N+E+W+S,padx=3,pady=3)
-        self.frame_folder.grid(row=1,column=0, rowspan=2,sticky=N+E+W+S,padx=3,pady=3)
-        self.frame_file.grid(row=1,column=1,rowspan=2,sticky=N+E+W+S,padx=3,pady=3)
-        self.frame_bottom.grid(row=3,column=0, columnspan=2,sticky=N+E+W+S,padx=3,pady=3)
-        # self.frame_path.pack(side="top", fill='x')
-        # self.frame_folder.pack(side="left", fill="x")
-        # self.frame_file.pack(side="right",fill='x')
-        # self.frame_bottom.pack(side="bottom", fill="both")
-
-        self.file_list = os.listdir(current_path)    # 디렉토리내 파일 리스트
-        # 폴더랑 파일 구분해서 보여줘야함
-        self.list_folders=Listbox(self.frame_folder, selectmode="single",width=30, height=10)
-        self.list_files=Listbox(self.frame_file, selectmode="single",width=30, height=10)
-        for file_name in self.file_list:
-            if os.path.isdir(os.path.join(current_path,file_name)):
-                self.list_folders.insert(END, file_name)
-            else:
-                self.list_files.insert(END, file_name)
+class UI_open(UI_file):
+    def __init__(self,root):
+        super().__init__(root)
         
-        self.file_name_txt=Entry(self.frame_bottom, width=50)
         
         self.btn_open=Button(self.frame_bottom, text="열기", command=self.open)
-        self.btn_cancel=Button(self.frame_bottom, text="취소", command=self.UI_open.destroy)
-        self.list_folders.pack(side="top")
-        self.list_files.pack(side="top")
-        self.file_name_txt.grid(row=0,column=0)
-        self.btn_cancel.grid(row=0,column=2)
         self.btn_open.grid(row=0,column=1)
-        # 파일리스트 선택시 동작 bind
-        self.list_files.bind("<<ListboxSelect>>", self.get_file_name)
-        self.list_files.bind("<Double-Button-1>", self.open_by_click)
-        # 폴더리스트 bind
-        self.list_folders.bind("<<ListboxSelect>>", self.get_file_name)
-        self.list_folders.bind("<Double-Button-1>", self.open_by_click)
         
-        # directory
-        # 버튼두개는 현재, 바로전 디렉토리 폴더 이름.
-        # StringVar를 이용해 자동으로 바뀌도록 해야함
-        self.dir1=StringVar()
-        self.dir2=StringVar()
-        print(dir_list)
-        self.dir1.set(dir_list[len(dir_list)-1])
-        self.dir2.set(dir_list[len(dir_list)-2])
-        self.btn_dir1=Button(self.frame_path, textvariable=self.dir1, padx=3,pady=3)
-        self.btn_dir2=Button(self.frame_path, textvariable=self.dir2, padx=3,pady=3, command=self.prev_dir)
-        self.btn_folder_list=Menubutton(self.frame_path, text=">>", padx=3, pady=3,relief="solid",bd=1)
+        self.list_files.bind("<Double-Button-1>", self.open)
+        self.UI.mainloop()
 
-        self.btn_dir2.grid(row=0, column=0,sticky=N+E+W+S)
-        
-        self.btn_folder_list.grid(row=0, column=1,sticky=N+E+W+S)
-        self.btn_dir1.grid(row=0, column=2,sticky=N+E+W+S)
-        
-
-        self.folder_list=Menu(self.btn_folder_list, tearoff=0)
-        self.folder_list.add_command(label="test", command=self.show_dir)
-        self.btn_folder_list["menu"]=self.folder_list
-        
-
-        self.UI_open.mainloop()
-    
-    def prev_dir(self):
-        # 디렉토리 변경을위해 경로에서 디렉토리 하나를 뺴줌
-        self.file_name_txt.delete(0, END)
-        global current_path
-        dir_list.pop()
-        current_path=os.path.split(current_path)[0]
-        self.dir1.set(dir_list[len(dir_list)-1])
-        self.dir2.set(dir_list[len(dir_list)-2])
-        self.file_list = os.listdir(current_path)
-        # 리스트박스도 수정해줌
-        self.list_files.delete(0,END)
-        self.list_folders.delete(0,END)
-        for file_name in self.file_list:
-            if os.path.isdir(os.path.join(current_path,file_name)):
-                self.list_folders.insert(END, file_name)
-            else:
-                self.list_files.insert(END, file_name)
-        
-    def show_dir(self):
-        pass
-
-
-    def open(self):
+    def open(self,event=None):
         global is_newtap
-        global current_path
-        # if self.listbox.curselection():
-        #     file_name=self.listbox.get(self.listbox.curselection())
+        
         file_name=self.file_name_txt.get()
         if not file_name:
             msgbox.showerror("error", "폴더 또는 파일명을 입력하세요.")
             return
         # 파일인지 폴더인지 판단
-        if os.path.isdir(os.path.join(current_path,file_name)): # 폴더
-            self.file_name_txt.delete(0, END)
-            current_path=os.path.join(current_path, file_name)
-            dir_list.append(file_name)
-            self.dir1.set(dir_list[len(dir_list)-1])
-            self.dir2.set(dir_list[len(dir_list)-2])
-            self.file_list = os.listdir(current_path)
-            self.list_files.delete(0,END)
-            self.list_folders.delete(0,END)
-            for file_name in self.file_list:
-                if os.path.isdir(os.path.join(current_path,file_name)):
-                    self.list_folders.insert(END, file_name)
-                else:
-                    self.list_files.insert(END, file_name)
+        tmp_path=os.path.join(get_cur_path(),file_name)
+        if os.path.isdir(tmp_path): # 폴더
+            self.go_path(tmp_path)
         else:
             try:
-                f=open(os.path.join(current_path,file_name), "r", encoding="UTF-8")
+                f=open(os.path.join(get_cur_path(),file_name), "r", encoding="UTF-8")
             except:
-                msgbox.showerror("error", "존재하지 않는 파일입니다.")
+                msgbox.showerror("error", "파일을 열 수 없음.")
             else:
                 data=f.read()[:-1]  # 마지막에 \n가 기입돼서 지워줌
                 # 메인 ui에서 동작하게 해야함
@@ -193,51 +94,18 @@ class UI_fileopen:
                 txt.delete("1.0", END)
                 txt.insert("1.0",data)
                 root.title(file_name)
-                self.UI_open.destroy()
-                cancel(self)
-
-    def get_file_name(self, event):
-        widget = event.widget   # 현재 이벤트의 위젯정보 (listbox)
-        try:
-            file_name=widget.get(widget.curselection())
-        except:
-            pass
-        else:
-            self.file_name_txt.delete(0, END)
-            self.file_name_txt.insert(0,file_name)
-
-    def open_by_click(self,event):
-        widget=event.widget
-        self.open()
-
-
+                self.UI.destroy()
 
 # 저장 UI
 # 새창이면 파일이름 * => 파일이름 작성해서 저장
 # 새창아니면 내용만 저장
 
-class UI_filesave:
-    def __init__(self):
-        global is_newtap
-        self.UI_save=Toplevel(root)
-        self.UI_save.title("열기")
-        self.UI_save.geometry("480x300")
-        self.UI_save.resizable(True, True)
-        self.file_list = os.listdir(current_path)    # 디렉토리내 파일 리스트
-        self.listbox=Listbox(self.UI_save, selectmode="single",width=40, height=10)
-        for file_name in self.file_list:
-            self.listbox.insert(END, file_name)
-        self.listbox.pack(side="top")
-        self.file_name_txt=Entry(self.UI_save, width=50)
-        self.file_name_txt.pack(side="left")
-        self.btn_open=Button(self.UI_save, text="저장", command=self.save_text)
-        self.btn_cancel=Button(self.UI_save, text="취소", command=self.UI_save.destroy)
-        self.btn_cancel.pack(side="right")
-        self.btn_open.pack(side="right")
-        # 리스트박스 선택시 동작 bind
-        self.listbox.bind("<<ListboxSelect>>", self.get_file_name)    # 리스트박스 선택시
+class UI_save(UI_file):
+    def __init__(self,root):
+        super().__init__(root)
+        self.btn_save=Button(self.frame_bottom, text="저장", command=self.save_text)
+        self.btn_save.grid(row=0,column=1)
 
-        # 파일이름 작성란
         if is_newtap:
             self.file_name_txt.delete(0,END)
             self.file_name_txt.insert(0, "*.txt")
@@ -245,24 +113,17 @@ class UI_filesave:
             self.file_name_txt.delete(0,END)
             self.file_name_txt.insert(0, f"{root.title()}")
 
-        self.UI_save.mainloop()
-    # 파일이름 가져오기
-    def get_file_name(self, event):
-        widget = event.widget   # 현재 이벤트의 위젯정보 (listbox)
-        file_name=widget.get(widget.curselection())
-        self.file_name_txt.delete(0, END)
-        self.file_name_txt.insert(0,file_name)
+        self.UI.mainloop()
 
-    # 저장
     def save_text(self):
         global is_newtap
         file_name=self.file_name_txt.get()
-        name1,name2=os.path.splitext(file_name)
+        name=os.path.splitext(file_name)[1]
         # 확장자가 텍스트나 파이썬 파일이 아니면 txt파일로 자동저장
-        if name2!=".txt" and name2!=".py":
+        if name!=".txt" and name!=".py":
             file_name=file_name+".txt"
         try:
-            f=open(os.path.join(current_path,file_name), "w", encoding="UTF-8")
+            f=open(os.path.join(get_cur_path(),file_name), "w", encoding="UTF-8")
         except:
             msgbox.showerror("error", "올바른 파일 이름입력.")
         else:
@@ -271,9 +132,7 @@ class UI_filesave:
             data=txt.get("1.0", END)
             f.write(data)
             f.close
-            self.UI_save.destroy()
-            cancel(self)
-
+            self.UI.destroy()
 
 
 # 찾기 UI
@@ -407,12 +266,6 @@ class UI_find:
 
 
 
-
-
-def cancel(UI):
-    del UI
-
-
 # 메뉴함수
 
 # 파일메뉴 함수
@@ -425,9 +278,9 @@ def yesnocancel():
 # 변화 내용을 감지해서 저장할지 물어봄
 def check_save():
         
-    file_list = os.listdir(current_path)
+    file_list = os.listdir(get_cur_path())
     if file_list.count(root.title()): # 현재 제목을 가진 파일이 있는지 확인
-        f=open(os.path.join(current_path,root.title()), "r", encoding="UTF-8")
+        f=open(os.path.join(get_cur_path(),root.title()), "r", encoding="UTF-8")
         data=f.read()
         f.close()
     else:
@@ -437,7 +290,7 @@ def check_save():
     if txt.get("1.0", END)!=data:
         res=yesnocancel()
         if res==1:  # 예: 저장
-            f_save=open(os.path.join(current_path,root.title()), "w", encoding="UTF-8")
+            f_save=open(os.path.join(get_cur_path(),root.title()), "w", encoding="UTF-8")
             data=txt.get("1.0", END)
             f_save.write(data)
             f_save.close()
@@ -450,15 +303,15 @@ def check_save():
         return 1
 def open_file(event=None):
     if check_save() != -1:
-        UI=UI_fileopen()
+        UI_open(root)
 
 def save_file(event=None):
     # 새 창일경우 파일이름 설정
     if is_newtap:
-        UI=UI_filesave()
+        UI_save(root)
 
     else:
-        f=open(os.path.join(current_path,root.title()), "w", encoding="UTF-8")
+        f=open(os.path.join(get_cur_path(),root.title()), "w", encoding="UTF-8")
         data=txt.get("1.0", END)
         f.write(data)
         f.close
@@ -478,7 +331,7 @@ def new_tap(event=None):
 
 # 다른이름으로 저장
 def save_as(event=None):
-    UI=UI_filesave()
+    UI=UI_save(root)
 
 # 편집메뉴 함수
 def find_word(event=None):
