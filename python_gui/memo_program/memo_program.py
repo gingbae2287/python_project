@@ -7,12 +7,15 @@
 # 실행취소(text.edit_undo), 찾기, 바꾸기, 모두바꾸기(블록있으면 블록안에서만)
 # 찾기에 단어(2자이상) 입력시 바로바로 모든 단어 블록처리(선택단어는 색 찐하게 블록)
 # 단축키 넣음
-# 파일탐색 UI에서 디렉토리이동(이전폴더, 폴더 들어가기 가능)
+# 파일탐색 UI에서 디렉토리이동(이전폴더, 폴더 들어가기 가능, 더블클릭, 열기로도 이동 가능)
+# 열기도 더블클릭으로 가능
 
 # 실행취소 undo가 시원찮아서 방법을 찾아야함. (파일 로드된것도 실행취소하면 텍스트만 지워버림;)
 # 버퍼?
 
 # 구현할 것 (파일탭)
+# 저장시 이름 중복-> 덮어쓰기 물어보기
+
 
 # 구현할것(편집탭)
 # 모두 바꾸기 바뀐 단어에 다 블록처리
@@ -73,15 +76,22 @@ class UI_open(UI_file):
 
     def open(self,event=None):
         global is_newtap
+        # 열기 눌렀을때 파일/폴더 선택에 따라 동작 다름
+        # 폴더 선택은 entry에 이름이 안뜸
+        
         
         file_name=self.file_name_txt.get()
-        if not file_name:
-            msgbox.showerror("error", "폴더 또는 파일명을 입력하세요.")
-            return
-        # 파일인지 폴더인지 판단
-        tmp_path=os.path.join(get_cur_path(),file_name)
-        if os.path.isdir(tmp_path): # 폴더
-            self.go_path(tmp_path)
+        if not file_name:   # entry에 파일이름이 없을때
+            try:
+                folder_name=self.list_folders.get(self.list_folders.curselection())
+            except: # 선택된 폴더가 없으면
+                msgbox.showerror("error", "폴더 또는 파일명을 입력하세요.")
+                return
+            else:   # 폴더 이동
+                tmp_path=os.path.join(get_cur_path(),folder_name)
+                self.go_path(tmp_path)
+                return
+        # entry에 파일이름이 있으면
         else:
             try:
                 f=open(os.path.join(get_cur_path(),file_name), "r", encoding="UTF-8")
