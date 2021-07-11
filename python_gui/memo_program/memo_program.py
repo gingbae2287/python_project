@@ -1,4 +1,6 @@
 # 메모장 따라만들기(tkinter)
+# !tkinter text는 마지막줄에 아스키코드 10( 줄바꿈)을 추가한다. \n이랑 달라서 \n제거를 해도 안먹혔다.
+# 그래서 입력 내용을 얻을때 get("1.0","end-1c") 을 해주면 된다. -1c는 마지막 줄바꿈을 빼겠단 말
 # 현재기능:
 # filedialog 사용 안하고 파일탐색 직접 구현
 # 저장, 열기(더블클릭으로도), 새창, 다른이름으로 저장
@@ -14,8 +16,8 @@
 # 실행취소 undo가 시원찮아서 방법을 찾아야함. (파일 로드된것도 실행취소하면 텍스트만 지워버림;)
 # 버퍼?
 
-# 구현할 것 (파일탭)
-
+# 구현할 것 
+# 창닫을때 변경있으면 저장사항 물어보기
 
 
 # 구현할것(편집탭)
@@ -54,7 +56,7 @@ frame.pack(fill="both", expand=True)
 
 scrollbar=Scrollbar(frame)
 scrollbar.pack(side="right", fill="y")
-txt=Text(frame,yscrollcommand=scrollbar.set, endline=None, inactiveselectbackground="blue", undo=True, autoseparators=True )  # 사이즈 비우니 전체가 text로 됨 but 사이즈 바꿔도 텍스트박스 크기고정;
+txt=Text(frame,yscrollcommand=scrollbar.set, inactiveselectbackground="blue", undo=True, autoseparators=True )  # 사이즈 비우니 전체가 text로 됨 but 사이즈 바꿔도 텍스트박스 크기고정;
 txt.pack(side="left",fill="both", expand=True)
 # txt.grid(row=0, column=0, sticky=N+W+S+E)
 scrollbar.config(command=txt.yview)
@@ -98,7 +100,9 @@ class UI_open(UI_file):
             except:
                 msgbox.showerror("error", "파일을 열 수 없음.")
             else:
-                data=f.read()[:-1]  # 마지막에 \n가 기입돼서 지워줌
+                # data=f.read()[:-1]  # 마지막에 \n가 기입돼서 지워줌
+                data=f.read()
+                data.rstrip()
                 # 메인 ui에서 동작하게 해야함
                 is_newtap=False
                 txt.delete("1.0", END)
@@ -132,22 +136,29 @@ class UI_save(UI_file):
         # 확장자가 텍스트나 파이썬 파일이 아니면 txt파일로 자동저장
         if name!=".txt" and name!=".py":
             file_name=file_name+".txt"
+        
+        # 이름 중복 확인 먼저
+        # if os.listdir(get_cur_path()).count(file_name):
+        #     result=msgbox.askyesno("다른이름으로 저장 확인", f"{file_name}(이)가 이미 있습니다. 덮어 쓰기?")
+        #     if not result:
+        #         return
         try:
+        # mode=x 는 w모드+ 중복있으면 에러
+            f=open(os.path.join(get_cur_path(),file_name), "x", encoding="UTF-8")
+        except FileExistsError:
+            result=msgbox.askyesno("다른이름으로 저장 확인", f"{file_name}(이)가 이미 있습니다. 덮어 쓰기?")
+            if not result:
+                return
             f=open(os.path.join(get_cur_path(),file_name), "w", encoding="UTF-8")
-        except:
-            msgbox.showerror("error", "올바른 파일 이름입력.")
-        else:
-            # 이름 중복 확인
-            if os.listdir(get_cur_path()).count(file_name):
-                result=msgbox.askyesno("다른이름으로 저장 확인", f"{file_name}(이)가 이미 있습니다. 덮어 쓰기?")
-            if result:
-                print(result)
-                is_newtap=False
-                root.title(file_name)
-                data=txt.get("1.0", END)
-                f.write(data)
-                f.close
-                self.UI.destroy()
+        except OSError:
+             msgbox.showerror("error", "올바른 파일 이름입력.")
+             return
+        is_newtap=False
+        root.title(file_name)
+        data=txt.get("1.0","end-1c")
+        f.write(data)
+        f.close
+        self.UI.destroy()
 
 
 # 찾기 UI
@@ -290,11 +301,12 @@ def yesnocancel():
     return response
     # 예=1 아니오=0 취소=-1
 
-# 변화 내용을 감지해서 저장할지 물어봄
-def check_save():
-        
+# 변화있을시 true 
+def check_change():
     file_list = os.listdir(get_cur_path())
-    if file_list.count(root.title()): # 현재 제목을 가진 파일이 있는지 확인
+    if is_newtap:
+        data="\n"
+    elif file_list.count(root.title()): # 현재 제목을 가진 파일이 있는지 확인
         f=open(os.path.join(get_cur_path(),root.title()), "r", encoding="UTF-8")
         data=f.read()
         f.close()
@@ -302,7 +314,22 @@ def check_save():
         data="\n"   # \n 으로 해야 공백 text박스와 일치
     # 현재 파일 내용이 원본과 다르면
     # 저장할지 여부 묻기
-    if txt.get("1.0", END)!=data:
+    return txt.get("1.0", END)!=data
+    
+
+# 변화 내용을 감지해서 저장할지 물어봄
+def check_save():
+    # file_list = os.listdir(get_cur_path())
+    # if file_list.count(root.title()): # 현재 제목을 가진 파일이 있는지 확인
+    #     f=open(os.path.join(get_cur_path(),root.title()), "r", encoding="UTF-8")
+    #     data=f.read()
+    #     f.close()
+    # else:
+    #     data="\n"   # \n 으로 해야 공백 text박스와 일치
+    # # 현재 파일 내용이 원본과 다르면
+    # # 저장할지 여부 묻기
+    # if txt.get("1.0", END)!=data:
+    if check_change():
         res=yesnocancel()
         if res==1:  # 예: 저장
             f_save=open(os.path.join(get_cur_path(),root.title()), "w", encoding="UTF-8")
@@ -327,7 +354,7 @@ def save_file(event=None):
 
     else:
         f=open(os.path.join(get_cur_path(),root.title()), "w", encoding="UTF-8")
-        data=txt.get("1.0", END)
+        data=txt.get("1.0","end-1c")
         f.write(data)
         f.close
 # 끝내기
@@ -381,6 +408,14 @@ menu_edit.add_command(label="다시 실행".ljust(12)+"Ctrl+y".rjust(8), command
 menu_edit.add_command(label="찾기/바꾸기".ljust(10)+"Ctrl+f".rjust(8), command=find_word)
 root.bind("<Control-f>",find_word)
 
+
+def test():
+    data=txt.get("1.0","end-1c")
+    #print(ord(data[len(data)-1])) # 마지막줄 아스키코드
+    print(data)
+
+menu_edit.add_command(label="test", command=test)
+
 menu.add_cascade(label="편집", menu=menu_edit)
 menu.add_cascade(label="서식", menu=menu_text)
 menu.add_cascade(label="보기", menu=menu_view)
@@ -389,7 +424,21 @@ menu.add_cascade(label="도움말", menu=menu_help)
 
 
 
+# 창닫을시 저장 묻기
+def ask_save_and_quit():
+    if check_change():
+        res=yesnocancel()
+        if res==1:
+            save_file()
+        elif res==0:
+            pass
+        else:
+            return
+    root.destroy()
 
+
+
+root.protocol("WM_DELETE_WINDOW", ask_save_and_quit)
 
 root.config(menu=menu)
 root.mainloop()
