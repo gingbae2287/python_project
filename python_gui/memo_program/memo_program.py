@@ -1,6 +1,6 @@
-# 메모장 따라만들기
+# 메모장 따라만들기(tkinter)
 # 현재기능:
-# filedialog 사용 안하고 구현했다
+# filedialog 사용 안하고 파일탐색 직접 구현
 # 저장, 열기(더블클릭으로도), 새창, 다른이름으로 저장
 # 저장시 텍스트나 파이썬 파일 아니면 자동 txt파일로 저장
 # 새창시 무조건 다른이름저장
@@ -9,18 +9,18 @@
 # 단축키 넣음
 # 파일탐색 UI에서 디렉토리이동(이전폴더, 폴더 들어가기 가능, 더블클릭, 열기로도 이동 가능)
 # 열기도 더블클릭으로 가능
+# 다른이름 저장시 이름 중복-> 덮어쓰기 물어보기
 
 # 실행취소 undo가 시원찮아서 방법을 찾아야함. (파일 로드된것도 실행취소하면 텍스트만 지워버림;)
 # 버퍼?
 
 # 구현할 것 (파일탭)
-# 저장시 이름 중복-> 덮어쓰기 물어보기
+
 
 
 # 구현할것(편집탭)
 # 모두 바꾸기 바뀐 단어에 다 블록처리
-# (파일열기)디렉토리 이동 => tkinter.filedialog 를 쓰면 구현돼있어서 쉽지만
-# 일단 os를 이용해 구현해 보겠음
+
 
 
 
@@ -137,12 +137,17 @@ class UI_save(UI_file):
         except:
             msgbox.showerror("error", "올바른 파일 이름입력.")
         else:
-            is_newtap=False
-            root.title(file_name)
-            data=txt.get("1.0", END)
-            f.write(data)
-            f.close
-            self.UI.destroy()
+            # 이름 중복 확인
+            if os.listdir(get_cur_path()).count(file_name):
+                result=msgbox.askyesno("다른이름으로 저장 확인", f"{file_name}(이)가 이미 있습니다. 덮어 쓰기?")
+            if result:
+                print(result)
+                is_newtap=False
+                root.title(file_name)
+                data=txt.get("1.0", END)
+                f.write(data)
+                f.close
+                self.UI.destroy()
 
 
 # 찾기 UI
@@ -150,7 +155,7 @@ class UI_find:
     def __init__(self):
         self.UI=Toplevel(root)
         self.UI.title()
-        self.UI.geometry("400x200")
+        self.UI.geometry("250x150")
         self.UI.resizable(False, False)
 
         # 창 종료 호출되면 콜백될 함수.
