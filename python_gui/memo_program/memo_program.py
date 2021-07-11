@@ -68,7 +68,7 @@ is_newtap=True
 class UI_open(UI_file):
     def __init__(self,root):
         super().__init__(root)
-        
+        self.UI.title("열기")
         
         self.btn_open=Button(self.frame_bottom, text="열기", command=self.open)
         self.btn_open.grid(row=0,column=1)
@@ -109,6 +109,7 @@ class UI_open(UI_file):
                 txt.insert("1.0",data)
                 root.title(file_name)
                 self.UI.destroy()
+                self.UI.quit()
 
 # 저장 UI
 # 새창이면 파일이름 * => 파일이름 작성해서 저장
@@ -117,6 +118,8 @@ class UI_open(UI_file):
 class UI_save(UI_file):
     def __init__(self,root):
         super().__init__(root)
+        self.UI.title("저장")
+
         self.btn_save=Button(self.frame_bottom, text="저장", command=self.save_text)
         self.btn_save.grid(row=0,column=1)
 
@@ -137,11 +140,6 @@ class UI_save(UI_file):
         if name!=".txt" and name!=".py":
             file_name=file_name+".txt"
         
-        # 이름 중복 확인 먼저
-        # if os.listdir(get_cur_path()).count(file_name):
-        #     result=msgbox.askyesno("다른이름으로 저장 확인", f"{file_name}(이)가 이미 있습니다. 덮어 쓰기?")
-        #     if not result:
-        #         return
         try:
         # mode=x 는 w모드+ 중복있으면 에러
             f=open(os.path.join(get_cur_path(),file_name), "x", encoding="UTF-8")
@@ -159,6 +157,7 @@ class UI_save(UI_file):
         f.write(data)
         f.close
         self.UI.destroy()
+        self.UI.quit()
 
 
 # 찾기 UI
@@ -240,6 +239,7 @@ class UI_find:
     
     def destroy_window(self): # 찾기 창 닫으면 태그 제거
         txt.tag_remove("tmp_sel", "1.0", END)
+        self.UI.quit()
         self.UI.destroy()
 
 
@@ -305,37 +305,24 @@ def yesnocancel():
 def check_change():
     file_list = os.listdir(get_cur_path())
     if is_newtap:
-        data="\n"
+        data=""
     elif file_list.count(root.title()): # 현재 제목을 가진 파일이 있는지 확인
         f=open(os.path.join(get_cur_path(),root.title()), "r", encoding="UTF-8")
         data=f.read()
         f.close()
     else:
-        data="\n"   # \n 으로 해야 공백 text박스와 일치
+        data=""
     # 현재 파일 내용이 원본과 다르면
     # 저장할지 여부 묻기
-    return txt.get("1.0", END)!=data
+    return txt.get("1.0","end-1c")!=data
     
 
 # 변화 내용을 감지해서 저장할지 물어봄
 def check_save():
-    # file_list = os.listdir(get_cur_path())
-    # if file_list.count(root.title()): # 현재 제목을 가진 파일이 있는지 확인
-    #     f=open(os.path.join(get_cur_path(),root.title()), "r", encoding="UTF-8")
-    #     data=f.read()
-    #     f.close()
-    # else:
-    #     data="\n"   # \n 으로 해야 공백 text박스와 일치
-    # # 현재 파일 내용이 원본과 다르면
-    # # 저장할지 여부 묻기
-    # if txt.get("1.0", END)!=data:
     if check_change():
         res=yesnocancel()
         if res==1:  # 예: 저장
-            f_save=open(os.path.join(get_cur_path(),root.title()), "w", encoding="UTF-8")
-            data=txt.get("1.0", END)
-            f_save.write(data)
-            f_save.close()
+            save_file()
             return 1
         elif res==0:    # 아니오
             return 0
@@ -344,8 +331,10 @@ def check_save():
     else:   # 변경내용 없으면 return 1
         return 1
 def open_file(event=None):
-    if check_save() != -1:
-        UI_open(root)
+    if check_save()==-1:
+        print("진행?")
+        return
+    UI_open(root)
 
 def save_file(event=None):
     # 새 창일경우 파일이름 설정
@@ -408,14 +397,14 @@ menu_edit.add_command(label="다시 실행".ljust(12)+"Ctrl+y".rjust(8), command
 menu_edit.add_command(label="찾기/바꾸기".ljust(10)+"Ctrl+f".rjust(8), command=find_word)
 root.bind("<Control-f>",find_word)
 
-
+#################test##############3
 def test():
     data=txt.get("1.0","end-1c")
     #print(ord(data[len(data)-1])) # 마지막줄 아스키코드
     print(data)
 
 menu_edit.add_command(label="test", command=test)
-
+#################################################
 menu.add_cascade(label="편집", menu=menu_edit)
 menu.add_cascade(label="서식", menu=menu_text)
 menu.add_cascade(label="보기", menu=menu_view)
@@ -439,6 +428,9 @@ def ask_save_and_quit():
 
 
 root.protocol("WM_DELETE_WINDOW", ask_save_and_quit)
+
+def delete(UI):
+    del UI
 
 root.config(menu=menu)
 root.mainloop()
